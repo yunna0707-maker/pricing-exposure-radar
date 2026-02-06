@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 마케팅/가격 전략 의사결정 도구 — 전략 기준·기회·경고 컬러 */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    /* Primary: 전략 기준 (indigo #4F46E5) */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --ring: 243 75% 59%;
+    /* Strategy tokens */
+    --strategy-accent: 142 71% 45%;
+    --strategy-warning: 0 84% 60%;
+    --background-soft: 210 40% 98%;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --border: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Pretendard", sans-serif;
+  }
+  /* 전략 툴: 숫자 정렬·가독성 */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .bg-strategy-soft {
+    background-color: hsl(var(--background-soft));
+  }
+  .text-strategy-accent {
+    color: hsl(var(--strategy-accent));
+  }
+  .text-strategy-warning {
+    color: hsl(var(--strategy-warning));
+  }
+}
