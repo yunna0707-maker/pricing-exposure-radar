@@ -1,0 +1,14 @@
+{
+  "name": "pricing-exposure-radar",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix fare-exposure-anchor",
+    "build": "npm run build --prefix fare-exposure-anchor",
+    "start": "npm run start --prefix fare-exposure-anchor",
+    "lint": "npm run lint --prefix fare-exposure-anchor",
+    "check:env": "npm run check:env --prefix fare-exposure-anchor",
+    "check:db": "npm run check:db --prefix fare-exposure-anchor",
+    "seed": "npm run seed --prefix fare-exposure-anchor",
+    "dev:all": "npm run dev:all --prefix fare-exposure-anchor"
+  }
+}

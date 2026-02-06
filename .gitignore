@@ -1,0 +1,10 @@
+# dependencies
+node_modules
+
+# env (do not commit secrets)
+.env
+.env.local
+.env.*.local
+
+# misc
+.DS_Store
