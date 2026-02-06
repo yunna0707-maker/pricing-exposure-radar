@@ -35,9 +35,19 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error("GET /api/exposures/summary", err);
     const isZod = err && typeof err === "object" && "name" in err && (err as { name: string }).name === "ZodError";
-    const message = isZod && err && typeof err === "object" && "errors" in err
-      ? (err as { errors: unknown[] }).errors?.map((e: unknown) => (e as { message?: string }).message ?? String(e)).join("; ") || ((err as { message?: string }).message ?? "Bad request")
-      : err instanceof Error ? err.message : "Bad request";
+    let message: string;
+    if (isZod && err && typeof err === "object" && "errors" in err) {
+      const zodErr = err as { errors: unknown[] };
+      const parts = zodErr.errors?.map((e: unknown) => {
+        const m = (e as { message?: string }).message;
+        return m !== undefined && m !== null ? m : String(e);
+      });
+      const joined = parts?.join("; ");
+      const fallback = (err as { message?: string }).message;
+      message = (joined && joined.length > 0) ? joined : (fallback ?? "Bad request");
+    } else {
+      message = err instanceof Error ? err.message : "Bad request";
+    }
     return NextResponse.json(
       { error: message },
       { status: isZod ? 400 : 500 }
