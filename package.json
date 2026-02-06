@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev --prefix fare-exposure-anchor",
-    "build": "npm run build --prefix fare-exposure-anchor",
+    "build": "npm install --prefix fare-exposure-anchor && npm run build --prefix fare-exposure-anchor",
     "start": "npm run start --prefix fare-exposure-anchor",
     "lint": "npm run lint --prefix fare-exposure-anchor",
     "check:env": "npm run check:env --prefix fare-exposure-anchor",
