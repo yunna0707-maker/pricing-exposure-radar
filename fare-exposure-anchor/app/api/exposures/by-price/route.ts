@@ -4,6 +4,10 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { byPriceQuerySchema, type ByPriceResponse } from "@/lib/validators";
 import { fetchExposuresByPrice } from "@/lib/query";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function buildHourBins(rows: { ts: string }[]): { hour: string; count: number }[] {
   const map = new Map<string, number>();
   for (const r of rows) {
@@ -18,7 +22,8 @@ function buildHourBins(rows: { ts: string }[]): { hour: string; count: number }[
 
 export async function GET(request: NextRequest) {
   try {
-    const sp = Object.fromEntries(request.nextUrl.searchParams);
+    const url = new URL(request.url);
+    const sp = Object.fromEntries(url.searchParams);
     const q = byPriceQuerySchema.parse(sp);
 
     const rows = await fetchExposuresByPrice(supabaseAdmin, {

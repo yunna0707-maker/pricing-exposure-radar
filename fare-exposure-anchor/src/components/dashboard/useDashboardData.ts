@@ -43,11 +43,11 @@ export function useDashboardData(filters: DashboardFilters, histogramBinSize: nu
     setError(null);
     try {
       const [summaryRes, histRes, tsRes, recentRes, priceCountsRes] = await Promise.all([
-        fetch(`${base}/summary?${q}`),
-        fetch(`${base}/histogram?${histQuery}`),
-        fetch(`${base}/timeseries?${q}`),
-        fetch(`${base}/recent?${q}`),
-        fetch(`${base}/price-counts?${q}`),
+        fetch(`${base}/summary?${q}`, { cache: "no-store" }),
+        fetch(`${base}/histogram?${histQuery}`, { cache: "no-store" }),
+        fetch(`${base}/timeseries?${q}`, { cache: "no-store" }),
+        fetch(`${base}/recent?${q}`, { cache: "no-store" }),
+        fetch(`${base}/price-counts?${q}`, { cache: "no-store" }),
       ]);
 
       const errText = async (res: Response): Promise<string> => {

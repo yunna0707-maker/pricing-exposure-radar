@@ -3,11 +3,16 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { exposureQuerySchema } from "@/lib/validators";
 import { fetchFilteredExposures } from "@/lib/query";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const MAX_ITEMS = 50;
 
 export async function GET(request: NextRequest) {
   try {
-    const sp = Object.fromEntries(request.nextUrl.searchParams);
+    const url = new URL(request.url);
+    const sp = Object.fromEntries(url.searchParams);
     const q = exposureQuerySchema.parse(sp);
     const rows = await fetchFilteredExposures(supabaseAdmin, q);
     const byPrice = new Map<number, number>();

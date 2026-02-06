@@ -63,7 +63,7 @@ export function PriceDrilldownPanel({
     setData(null);
 
     const q = buildQueryParams(priceKRW, filters, anchorPrice);
-    fetch(`/api/exposures/by-price?${q}`)
+    fetch(`/api/exposures/by-price?${q}`, { cache: "no-store" })
       .then((res) => {
         if (!res.ok) return res.json().then((b) => Promise.reject(new Error((b as { error?: string }).error ?? res.statusText)));
         return res.json() as Promise<ByPriceResponse>;
