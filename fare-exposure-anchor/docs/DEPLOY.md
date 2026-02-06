@@ -159,6 +159,17 @@ git push -u origin main
 
 ## 5. 트러블슈팅
 
+- **`error: src refspec main does not match any` / `failed to push some refs`**  
+  로컬 기본 브랜치가 `master`인 경우 발생합니다.  
+  1) 현재 브랜치 확인: `git branch`  
+  2) 해결 방법 중 하나만 실행:  
+  - **방법 A** (main으로 맞추기): `git branch -M main` → `git push -u origin main`  
+  - **방법 B** (master 그대로 푸시): `git push -u origin master`  
+
+- **`LF will be replaced by CRLF` 경고**  
+  Windows에서 줄바꿈 차이로 나오는 경고이며, 푸시는 정상 진행됩니다.  
+  프로젝트에 `.gitattributes`(LF 통일)가 있으면 이후 커밋부터 경고가 줄어듭니다.  
+
 - **API 연결 실패 / 데이터 없음**  
   - Vercel(또는 호스팅) 환경 변수에 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 가 올바르게 설정되었는지 확인  
   - Supabase 대시보드에서 해당 프로젝트의 URL과 service_role 키 재확인  
