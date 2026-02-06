@@ -50,7 +50,7 @@ export function useDashboardData(filters: DashboardFilters, histogramBinSize: nu
         fetch(`${base}/price-counts?${q}`),
       ]);
 
-      async function errText(res: Response): Promise<string> {
+      const errText = async (res: Response): Promise<string> => {
         const text = await res.text();
         try {
           const j = JSON.parse(text) as { error?: string };
@@ -58,7 +58,7 @@ export function useDashboardData(filters: DashboardFilters, histogramBinSize: nu
         } catch {
           return text;
         }
-      }
+      };
 
       if (!summaryRes.ok) throw new Error(await errText(summaryRes));
       if (!histRes.ok) throw new Error(await errText(histRes));

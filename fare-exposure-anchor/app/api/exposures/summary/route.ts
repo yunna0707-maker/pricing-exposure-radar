@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     console.error("GET /api/exposures/summary", err);
     const isZod = err && typeof err === "object" && "name" in err && (err as { name: string }).name === "ZodError";
     const message = isZod && err && typeof err === "object" && "errors" in err
-      ? (err as { errors: unknown[] }).errors?.map((e: unknown) => (e as { message?: string }).message ?? String(e)).join("; ") || (err as { message?: string }).message ?? "Bad request"
+      ? (err as { errors: unknown[] }).errors?.map((e: unknown) => (e as { message?: string }).message ?? String(e)).join("; ") || ((err as { message?: string }).message ?? "Bad request")
       : err instanceof Error ? err.message : "Bad request";
     return NextResponse.json(
       { error: message },
