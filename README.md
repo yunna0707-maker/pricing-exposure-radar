@@ -2,12 +2,15 @@
 
 이 저장소는 **가격 노출 기준점** 대시보드 프로젝트를 포함합니다.
 
-## 프로젝트 위치
+## 레포 구조
 
-- **앱 코드**: [`fare-exposure-anchor/`](./fare-exposure-anchor/) 폴더
-- **실행·배포·API** 등 상세 내용은 [fare-exposure-anchor/README.md](./fare-exposure-anchor/README.md) 참고
+- **실제 Next.js 앱**은 [`fare-exposure-anchor/`](./fare-exposure-anchor/) 폴더 안에 있습니다.
+- **루트의 `package.json`** 은 wrapper 역할만 합니다. 앱 의존성/빌드는 모두 `fare-exposure-anchor`에서 이루어지며, 루트 스크립트는 `--prefix fare-exposure-anchor` 로 해당 폴더 명령을 대신 실행합니다.
+- **Vercel 배포 시** 반드시 **Root Directory** 를 `fare-exposure-anchor` 로 설정하세요. Output Directory는 비워 두고(Automatic) 사용합니다.
 
-## 빠른 실행
+## 로컬 실행
+
+앱 폴더에서 직접 실행:
 
 ```bash
 cd fare-exposure-anchor
@@ -15,7 +18,25 @@ npm install
 npm run dev
 ```
 
+또는 루트에서 한 번에 실행:
+
+```bash
+npm install --prefix fare-exposure-anchor && npm run dev --prefix fare-exposure-anchor
+```
+
 대시보드: http://localhost:3000/dashboard
+
+## 로컬 빌드
+
+```bash
+npm run build --prefix fare-exposure-anchor
+```
+
+(루트 `package.json`의 `build` 스크립트는 위와 동일한 빌드를 실행합니다.)
+
+## 프로젝트 상세
+
+- **실행·배포·API** 등 상세 내용은 [fare-exposure-anchor/README.md](./fare-exposure-anchor/README.md) 참고
 
 ## GitHub 푸시
 
@@ -33,10 +54,10 @@ git push -u origin main
 
 ### 설정 가이드 (권장)
 
-- **Root Directory**: `fare-exposure-anchor` 로 설정하면 **가장 안정적**입니다. (앱이 이 폴더 안에 있음)
+- **Root Directory**: 반드시 `fare-exposure-anchor` 로 설정하세요. (앱이 이 폴더 안에 있음)
 - **Framework Preset**: **Next.js** 선택
 - **Output Directory**: 비워 두고 **Automatic** 으로 두세요. Next.js가 자동으로 출력 경로를 사용합니다. (`public` 등으로 고정하지 말 것)
-- **Build / Install Command**: Root Directory를 `fare-exposure-anchor`로 두면 Vercel이 자동 인식합니다. 루트에서 빌드하는 경우 레포 루트의 `vercel.json`이 `--prefix fare-exposure-anchor` 로 안내합니다.
+- **Build / Install Command**: Root Directory를 `fare-exposure-anchor`로 두면 Vercel이 해당 폴더의 `package.json`을 기준으로 자동 인식합니다.
 
 ### 배포 절차
 
