@@ -36,11 +36,20 @@
 4. `npm run check:db`  
    Supabase 연결 및 `exposure_events` 테이블 접근 테스트
 
-5. `npm run seed`  
-   50,000건 더미 노출 이벤트 삽입 (선택)
+5. **시드 데이터 삽입 (선택)**  
+   - `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 설정 후  
+   - `npm install`  
+   - **(선택)** 기존 데이터 삭제 후 재시드: `SEED_TRUNCATE=true npm run seed`  
+   - 시드 실행: `SEED_COUNT=50000 npm run seed` (기본 50,000행, 환경변수로 조절 가능)  
+   - Supabase **SQL Editor**에서 `docs/seed-verify.sql` 내용을 실행해 KE/OZ 외 항공사·노선 분포를 확인하세요.
 
 6. `npm run dev`  
    개발 서버 실행 후 http://localhost:3000/dashboard 접속
+
+**localhost 연결 거부(ERR_CONNECTION_REFUSED)일 때:**  
+① 터미널에서 `npm run dev` 실행 후 **"✓ Ready"** / **"Local: http://localhost:3000"** 메시지가 나올 때까지 30초~1분 기다리세요.  
+② **Cursor/VS Code 내장 브라우저**는 localhost 접속이 안 되는 경우가 많습니다. **Chrome·Edge 등 외부 브라우저**를 열고 주소창에 `http://localhost:3000/dashboard` 를 입력해 접속하세요.  
+③ 그래도 안 되면 `npm run dev:open` 으로 실행한 뒤 브라우저에서 `http://127.0.0.1:3000/dashboard` 로 접속해 보세요.
 
 한 번에 점검 후 실행: `npm run dev:all` (check:env → check:db → dev)
 
@@ -60,8 +69,14 @@ ALTER TABLE exposure_events
 - 의존성: `npm install`
 - 환경 변수: `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 설정
 - 점검: `npm run check:env`, `npm run check:db`
-- 시드: `npm run seed` (선택)
+- 시드: `npm run seed` 또는 `SEED_COUNT=50000 npm run seed`, `SEED_TRUNCATE=true npm run seed` (선택)
 - 실행: `npm run dev` 또는 `npm run dev:all`
+
+**시드 실행 및 검증:**  
+- `npm run seed`: 기본 50,000행 삽입. `SEED_COUNT=80000 npm run seed` 로 건수 조절.  
+- `SEED_TRUNCATE=true npm run seed`: 기존 시드(currency=KRW) 삭제 후 재삽입.  
+- 실행 후 콘솔에 **항공사별/노선별 Top10**, **trip_type·channel 분포**가 출력됩니다.  
+- 전체 검증: Supabase SQL Editor에서 `docs/seed-verify.sql` 실행 후, `/dashboard`에서 KE/OZ 외 항공사 필터가 보이는지 확인하세요.
 
 ## 배포
 
@@ -97,6 +112,7 @@ ALTER TABLE exposure_events
 | GET | `/api/exposures/timeseries` | 시간대별 평균/중앙값/건수 |
 | GET | `/api/exposures/recent` | 최근 30건 |
 | GET | `/api/exposures/by-price` | 특정 가격 구간 노출 상세 (시간대별·로그, Drill-down용) |
+| GET | `/api/exposures/options` | 캐스케이딩 필터용 옵션 (airlines, origins, dests, tripTypes, channels, availablePairsCount) |
 
 공통 쿼리: `airline`, `origin`, `dest`, `tripType`, `channel`(선택), `period=24h|7d`
 
@@ -112,6 +128,7 @@ ALTER TABLE exposure_events
   /api/exposures/recent/route.ts (GET)
   /api/exposures/by-price/route.ts (GET)
   /api/exposures/price-counts/route.ts (GET)
+  /api/exposures/options/route.ts (GET)
 /src
   /lib/supabaseAdmin.ts   (service role, server-only)
   /lib/validators.ts

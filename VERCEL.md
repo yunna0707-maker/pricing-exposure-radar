@@ -22,6 +22,7 @@ Add these for **Production** (and Preview if you use it):
 |------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Your Supabase **service_role** key (not anon) |
+| `NEXT_PUBLIC_ANALYTICS_ENABLED` | (선택) Preview에서 방문 기록 끄기: `false` |
 
 ## 3. Deploy
 
