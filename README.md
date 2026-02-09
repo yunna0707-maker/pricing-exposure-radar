@@ -26,6 +26,12 @@ npm install --prefix fare-exposure-anchor && npm run dev --prefix fare-exposure-
 
 대시보드: http://localhost:3000/dashboard
 
+## 배포 (Preview → Production)
+
+기존 Production을 유지한 채 새 변경사항을 Preview로 올린 뒤, 확인 후 Production으로 승격하는 절차는 아래 문서를 따르세요.
+
+- **[fare-exposure-anchor/docs/DEPLOY-PREVIEW-TO-PRODUCTION.md](./fare-exposure-anchor/docs/DEPLOY-PREVIEW-TO-PRODUCTION.md)** — 복붙용 명령어, Vercel 메뉴 경로, 체크리스트, 흔한 오류 해결
+
 ## 로컬 빌드
 
 ```bash

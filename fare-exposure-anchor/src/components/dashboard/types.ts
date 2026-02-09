@@ -85,3 +85,13 @@ export interface PriceCountItem {
 export interface PriceCountsData {
   items: PriceCountItem[];
 }
+
+/** GET /api/exposures/options 응답 — 캐스케이딩 필터 옵션 */
+export interface FilterOptionsResult {
+  airlines: string[];
+  origins: string[];
+  dests: string[];
+  tripTypes: string[];
+  channels: string[];
+  availablePairsCount: number;
+}

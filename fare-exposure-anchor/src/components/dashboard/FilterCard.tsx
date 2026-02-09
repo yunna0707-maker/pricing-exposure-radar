@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -9,22 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Monitor, Smartphone, Globe, Server, ChevronDown, X } from "lucide-react";
+import { Monitor, Smartphone, Globe, Server, ChevronDown, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardFilters } from "./types";
+import type { FilterOptionsResult } from "./types";
 
-const AIRLINES = [
-  "OZ", "KE", "7C", "JL", "NH", "BR", "CX", "SQ", "TG", "CZ", "MU", "CA",
-  "UA", "AA", "DL", "BA", "LH", "AF", "EK", "QR", "AY", "KL", "OS", "LX",
-];
-const AIRPORTS = [
-  "ICN", "GMP", "LAX", "NRT", "CJU", "HND", "PUS", "KIX", "BKK", "SIN",
-  "HKG", "PVG", "PEK", "TPE", "SFO", "JFK", "LHR", "CDG", "FRA", "DXB",
-];
-const TRIP_TYPES = ["OW", "RT", "MC"];
 const PERIODS = ["24h", "7d"];
 
-const CHANNELS: { value: string; label: string; icon: typeof Monitor }[] = [
+const CHANNELS_UI: { value: string; label: string; icon: typeof Monitor }[] = [
   { value: "all", label: "전체", icon: Globe },
   { value: "web", label: "웹", icon: Monitor },
   { value: "mobile", label: "모바일", icon: Smartphone },
@@ -39,6 +31,19 @@ interface FilterCardProps {
   onFiltersChange: (f: DashboardFilters) => void;
 }
 
+function buildOptionsQuery(f: DashboardFilters): string {
+  const p = new URLSearchParams();
+  if (f.period) p.set("period", f.period);
+  if (f.airline) p.set("airline", f.airline);
+  if (f.tripType) p.set("tripType", f.tripType);
+  if (f.channel && f.channel !== "all") p.set("channel", f.channel);
+  if (f.origin) p.set("origin", f.origin);
+  if (f.dest) p.set("dest", f.dest);
+  if (f.departureDate?.trim()) p.set("departureDate", f.departureDate);
+  if (f.arrivalDate?.trim()) p.set("arrivalDate", f.arrivalDate);
+  return p.toString();
+}
+
 export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
   const [airlineOpen, setAirlineOpen] = useState(false);
   const [originOpen, setOriginOpen] = useState(false);
@@ -46,6 +51,8 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
   const [airlineSearch, setAirlineSearch] = useState("");
   const [originSearch, setOriginSearch] = useState("");
   const [destSearch, setDestSearch] = useState("");
+  const [options, setOptions] = useState<FilterOptionsResult | null>(null);
+  const [optionsLoading, setOptionsLoading] = useState(false);
   const airlineRef = useRef<HTMLDivElement>(null);
   const originRef = useRef<HTMLDivElement>(null);
   const destRef = useRef<HTMLDivElement>(null);
@@ -55,26 +62,78 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
     [filters.airline]
   );
 
+  // 옵션 API 호출 (period 기본 24h)
+  useEffect(() => {
+    const period = filters.period || "24h";
+    const q = buildOptionsQuery({ ...filters, period });
+    setOptionsLoading(true);
+    fetch(`/api/exposures/options?${q}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Options failed"))))
+      .then((data: FilterOptionsResult) => {
+        setOptions(data);
+        setOptionsLoading(false);
+      })
+      .catch(() => {
+        setOptions(null);
+        setOptionsLoading(false);
+      });
+  }, [
+    filters.period,
+    filters.airline,
+    filters.tripType,
+    filters.channel,
+    filters.origin,
+    filters.dest,
+    filters.departureDate,
+    filters.arrivalDate,
+  ]);
+
+  // 옵션 로드 후 현재 선택이 유효하지 않으면 초기화 (캐스케이딩 보정)
+  useEffect(() => {
+    if (!options) return;
+    let next = { ...filters };
+    if (filters.origin && !options.origins.includes(filters.origin)) next = { ...next, origin: "" };
+    if (filters.dest && !options.dests.includes(filters.dest)) next = { ...next, dest: "" };
+    if (next.origin !== filters.origin || next.dest !== filters.dest) onFiltersChange(next);
+  }, [options, filters.origin, filters.dest, onFiltersChange]);
+
+  const airlinesList = options?.airlines ?? [];
+  const originsList = options?.origins ?? [];
+  const destsList = options?.dests ?? [];
+  const tripTypesList = options?.tripTypes ?? [];
+  const channelsFromApi = options?.channels ?? [];
+
   const filteredAirlines = useMemo(
     () =>
-      AIRLINES.filter((a) =>
+      airlinesList.filter((a) =>
         a.toLowerCase().includes(airlineSearch.trim().toLowerCase())
       ),
-    [airlineSearch]
+    [airlinesList, airlineSearch]
   );
   const filteredOrigins = useMemo(
     () =>
-      AIRPORTS.filter((a) =>
+      originsList.filter((a) =>
         a.toLowerCase().includes(originSearch.trim().toLowerCase())
       ),
-    [originSearch]
+    [originsList, originSearch]
   );
   const filteredDests = useMemo(
     () =>
-      AIRPORTS.filter((a) =>
+      destsList.filter((a) =>
         a.toLowerCase().includes(destSearch.trim().toLowerCase())
       ),
-    [destSearch]
+    [destsList, destSearch]
+  );
+
+  const channelsList = useMemo(
+    () =>
+      channelsFromApi.length > 0
+        ? [
+            ...CHANNELS_UI.filter((c) => c.value === "all"),
+            ...CHANNELS_UI.filter((c) => c.value !== "all" && channelsFromApi.includes(c.value)),
+          ]
+        : CHANNELS_UI,
+    [channelsFromApi]
   );
 
   useEffect(() => {
@@ -93,11 +152,14 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  const update = (key: keyof DashboardFilters, value: string) => {
-    const next = { ...filters, [key]: value };
-    if (key === "tripType" && value === "OW") next.arrivalDate = "";
-    onFiltersChange(next);
-  };
+  const update = useCallback(
+    (key: keyof DashboardFilters, value: string) => {
+      const next = { ...filters, [key]: value };
+      if (key === "tripType" && value === "OW") next.arrivalDate = "";
+      onFiltersChange(next);
+    },
+    [filters, onFiltersChange]
+  );
 
   const toggleAirline = (code: string) => {
     const set = new Set(selectedAirlines);
@@ -113,6 +175,7 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
   };
 
   const isOW = filters.tripType === "OW";
+  const loadingSpinner = optionsLoading ? <Loader2 className="h-4 w-4 animate-spin opacity-50" /> : null;
 
   return (
     <Card>
@@ -120,7 +183,7 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
         <CardTitle className="text-base">필터</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* 항공사: 다중 선택 + 검색 (칩 UI) - div 사용해 button 중첩 방지 */}
+        {/* 항공사: 다중 선택 + 검색 (연결 가능한 값만) */}
         <div ref={airlineRef} className="relative">
           <label className="text-xs text-muted-foreground">항공사</label>
           <div
@@ -136,7 +199,11 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
             className={cn(triggerClass, "mt-1 cursor-pointer justify-between")}
           >
             <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              {selectedAirlines.length === 0 ? (
+              {optionsLoading && airlinesList.length === 0 ? (
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> 로딩 중…
+                </span>
+              ) : selectedAirlines.length === 0 ? (
                 <span className="text-muted-foreground">항공사 선택</span>
               ) : (
                 selectedAirlines.map((code) => (
@@ -157,7 +224,7 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
                 ))
               )}
             </span>
-            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+            {loadingSpinner ?? <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />}
           </div>
           {airlineOpen && (
             <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-md">
@@ -170,7 +237,9 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
               />
               <div className="max-h-48 overflow-y-auto">
                 {filteredAirlines.length === 0 ? (
-                  <p className="py-2 text-center text-xs text-muted-foreground">검색 결과 없음</p>
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    {optionsLoading ? "로딩 중…" : "조건에 맞는 데이터 없음"}
+                  </p>
                 ) : (
                   filteredAirlines.map((a) => (
                     <label
@@ -192,7 +261,7 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
           )}
         </div>
 
-        {/* 출발: 검색 가능 단일 선택 */}
+        {/* 출발: 연결 가능한 origin만 */}
         <div ref={originRef} className="relative">
           <label className="text-xs text-muted-foreground">출발</label>
           <button
@@ -200,7 +269,11 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
             onClick={() => { setOriginOpen((o) => !o); setOriginSearch(""); }}
             className={cn(triggerClass, "mt-1")}
           >
-            <span>{filters.origin || "출발지 선택"}</span>
+            <span>
+              {optionsLoading && originsList.length === 0
+                ? "로딩 중…"
+                : filters.origin || "출발지 선택"}
+            </span>
             <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
           </button>
           {originOpen && (
@@ -213,22 +286,28 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
                 className="mb-2 h-8 w-full rounded border bg-background px-2 text-sm"
               />
               <div className="max-h-48 overflow-y-auto">
-                {filteredOrigins.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                    onClick={() => { update("origin", a); setOriginOpen(false); }}
-                  >
-                    {a}
-                  </button>
-                ))}
+                {filteredOrigins.length === 0 ? (
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    {optionsLoading ? "로딩 중…" : "조건에 맞는 데이터 없음"}
+                  </p>
+                ) : (
+                  filteredOrigins.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                      onClick={() => { update("origin", a); setOriginOpen(false); }}
+                    >
+                      {a}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* 도착: 검색 가능 단일 선택 */}
+        {/* 도착: 선택된 출발과 연결되는 dest만 */}
         <div ref={destRef} className="relative">
           <label className="text-xs text-muted-foreground">도착</label>
           <button
@@ -236,7 +315,11 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
             onClick={() => { setDestOpen((o) => !o); setDestSearch(""); }}
             className={cn(triggerClass, "mt-1")}
           >
-            <span>{filters.dest || "도착지 선택"}</span>
+            <span>
+              {optionsLoading && destsList.length === 0 && originsList.length === 0
+                ? "로딩 중…"
+                : filters.dest || "도착지 선택"}
+            </span>
             <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
           </button>
           {destOpen && (
@@ -249,16 +332,22 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
                 className="mb-2 h-8 w-full rounded border bg-background px-2 text-sm"
               />
               <div className="max-h-48 overflow-y-auto">
-                {filteredDests.map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
-                    onClick={() => { update("dest", a); setDestOpen(false); }}
-                  >
-                    {a}
-                  </button>
-                ))}
+                {filteredDests.length === 0 ? (
+                  <p className="py-2 text-center text-xs text-muted-foreground">
+                    {optionsLoading ? "로딩 중…" : "조건에 맞는 데이터 없음"}
+                  </p>
+                ) : (
+                  filteredDests.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                      onClick={() => { update("dest", a); setDestOpen(false); }}
+                    >
+                      {a}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -268,11 +357,11 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
           <label className="text-xs text-muted-foreground">편도/왕복</label>
           <Select value={filters.tripType || " "} onValueChange={(v) => update("tripType", v === " " ? "" : v)}>
             <SelectTrigger className="mt-1">
-              <SelectValue placeholder="선택하세요" />
+              <SelectValue placeholder={optionsLoading ? "로딩 중…" : "선택하세요"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value=" ">선택하세요</SelectItem>
-              {TRIP_TYPES.map((t) => (
+              {tripTypesList.map((t) => (
                 <SelectItem key={t} value={t}>
                   {t}
                 </SelectItem>
@@ -342,7 +431,7 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value=" ">선택하세요</SelectItem>
-              {CHANNELS.map((c) => {
+              {channelsList.map((c) => {
                 const Icon = c.icon;
                 return (
                   <SelectItem key={c.value} value={c.value}>
@@ -356,6 +445,12 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {options && options.availablePairsCount >= 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            현재 조건 가능 OD 쌍: <strong>{options.availablePairsCount}</strong>개
+          </p>
+        )}
       </CardContent>
     </Card>
   );

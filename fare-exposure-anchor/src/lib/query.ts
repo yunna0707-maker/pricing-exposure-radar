@@ -77,3 +77,103 @@ export async function fetchExposuresByPrice(
   if (error) throw error;
   return ((data ?? []) as unknown) as ByPriceRow[];
 }
+
+/** GET /api/exposures/options — 캐스케이딩 필터용 distinct 값 조회 */
+export interface FilterOptionsQuery {
+  airline?: string;
+  origin?: string;
+  dest?: string;
+  tripType?: string;
+  period?: "24h" | "7d";
+  channel?: string;
+  departureDate?: string;
+  arrivalDate?: string;
+}
+
+export interface FilterOptionsResult {
+  airlines: string[];
+  origins: string[];
+  dests: string[];
+  tripTypes: string[];
+  channels: string[];
+  availablePairsCount: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyOptionsFilters(
+  q: FilterOptionsQuery,
+  omitKey: "airline" | "origin" | "dest" | "trip_type" | "channel"
+): (builder: any) => any {
+  return (builder: any) => {
+    let b = builder;
+    if (omitKey !== "airline" && q.airline) {
+      const airlines = q.airline.split(",").map((s) => s.trim()).filter(Boolean);
+      if (airlines.length === 1) b = b.eq("airline", airlines[0]!);
+      else if (airlines.length > 1) b = b.in("airline", airlines);
+    }
+    if (omitKey !== "origin" && q.origin) b = b.eq("origin", q.origin);
+    if (omitKey !== "dest" && q.dest) b = b.eq("dest", q.dest);
+    if (omitKey !== "trip_type" && q.tripType) b = b.eq("trip_type", q.tripType);
+    if (omitKey !== "channel" && q.channel && q.channel !== "all") b = b.eq("channel", q.channel);
+    if (q.departureDate?.trim()) b = b.eq("departure_date", q.departureDate!.trim());
+    if (q.arrivalDate?.trim()) b = b.eq("arrival_date", q.arrivalDate!.trim());
+    return b;
+  };
+}
+
+export async function fetchFilterOptions(
+  supabase: SupabaseClient,
+  q: FilterOptionsQuery
+): Promise<FilterOptionsResult> {
+  const period = q.period ?? "24h";
+  const since = getSinceDate(period);
+
+  const runDistinct = async (
+    column: "airline" | "origin" | "dest" | "trip_type" | "channel"
+  ): Promise<string[]> => {
+    const builder = applyOptionsFilters(q, column)(
+      supabase.from("exposure_events").select(column).gte("ts", since.toISOString())
+    );
+    const { data, error } = await builder;
+    if (error) throw error;
+    const values: string[] = (data ?? [])
+      .map((r: Record<string, unknown>) => r[column])
+      .filter((v: unknown): v is string => typeof v === "string" && v.length > 0);
+    return Array.from(new Set(values)).sort();
+  };
+
+  const runPairsCount = async (): Promise<number> => {
+    let builder = supabase
+      .from("exposure_events")
+      .select("origin, dest")
+      .gte("ts", since.toISOString());
+    builder = applyOptionsFilters(q, "airline")(builder);
+    if (q.airline) {
+      const airlines = q.airline.split(",").map((s) => s.trim()).filter(Boolean);
+      if (airlines.length === 1) builder = builder.eq("airline", airlines[0]!);
+      else if (airlines.length > 1) builder = builder.in("airline", airlines);
+    }
+    const { data, error } = await builder;
+    if (error) throw error;
+    const pairs = new Set<string>((data ?? []).map((r: { origin: string; dest: string }) => `${r.origin}-${r.dest}`));
+    return pairs.size;
+  };
+
+  const [airlines, origins, dests, tripTypes, channels, availablePairsCount] = await Promise.all([
+    runDistinct("airline"),
+    runDistinct("origin"),
+    runDistinct("dest"),
+    runDistinct("trip_type"),
+    runDistinct("channel"),
+    runPairsCount(),
+  ]);
+
+  return {
+    airlines,
+    origins,
+    dests,
+    tripTypes,
+    channels,
+    availablePairsCount,
+  };
+}

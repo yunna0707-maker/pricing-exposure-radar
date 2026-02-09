@@ -62,6 +62,31 @@ export const exposureQuerySchema = z.object({
 
 export type ExposureQuery = z.infer<typeof exposureQuerySchema>;
 
+// GET /api/exposures/options — 캐스케이딩 필터 옵션용 (전부 optional)
+export const optionsQuerySchema = z.object({
+  airline: z.string().optional(),
+  origin: z.string().optional(),
+  dest: z.string().optional(),
+  tripType: z.string().optional(),
+  period: z.enum(["24h", "7d"]).optional().default("24h"),
+  channel: z.string().optional(),
+  departureDate: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const s = typeof v === "string" ? v.trim() : "";
+      return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined;
+    }),
+  arrivalDate: z
+    .string()
+    .optional()
+    .transform((v) => {
+      const s = typeof v === "string" ? v.trim() : "";
+      return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined;
+    }),
+});
+export type OptionsQuery = z.infer<typeof optionsQuerySchema>;
+
 // GET /api/exposures/by-price
 export const byPriceQuerySchema = z.object({
   priceKRW: z.coerce.number().int().min(0),
