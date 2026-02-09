@@ -13,6 +13,8 @@ function buildQuery(f: DashboardFilters): string {
   if (f.channel && f.channel !== "all") p.set("channel", f.channel);
   if (f.departureDate?.trim()) p.set("departureDate", f.departureDate);
   if (f.arrivalDate?.trim()) p.set("arrivalDate", f.arrivalDate);
+  if (f.minPrice != null) p.set("minPrice", String(f.minPrice));
+  if (f.maxPrice != null) p.set("maxPrice", String(f.maxPrice));
   return p.toString();
 }
 

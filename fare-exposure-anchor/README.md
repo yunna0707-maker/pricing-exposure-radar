@@ -17,7 +17,8 @@
 1. [Supabase](https://supabase.com)에서 프로젝트 생성
 2. 대시보드 → **SQL Editor**에서 `supabase/schema.sql` 내용 붙여넣기 후 **Run** 실행  
    (이미 테이블이 있는 경우: `supabase/migrations/20250205000000_add_departure_arrival_dates.sql`만 실행해 출발일/도착일 컬럼 추가)
-3. **Project Settings** → **API**에서 다음 확인:
+3. **방문 추적(visit tracking)** 을 쓰려면 **SQL Editor**에서 `supabase/migrations/20250206000000_visit_events.sql` 내용을 붙여넣고 **Run** 실행해 `visit_events` 테이블을 생성하세요.
+4. **Project Settings** → **API**에서 다음 확인:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **service_role** (secret) → `SUPABASE_SERVICE_ROLE_KEY`  
    (서비스 롤 키는 서버 전용으로만 사용되며 클라이언트 번들에 포함되지 않습니다.)
@@ -79,11 +80,18 @@ ALTER TABLE exposure_events
 
 - 배포 전 로컬에서 `npm run build` 로 빌드 성공 여부 확인 권장  
 
+## Visit tracking (방문 추적)
+
+- 대시보드 조회 시 **방문 수(Pageviews)** / **방문자 수(Unique)** 를 `visit_events` 테이블에 기록하고 KPI로 표시합니다.
+- `pea_vid` 쿠키(365일)로 고유 방문자를 근사합니다. 테이블 생성: `supabase/migrations/20250206000000_visit_events.sql` 실행.
+
 ## API
 
 | Method | Path | 설명 |
 |--------|------|------|
 | POST | `/api/exposures` | 노출 이벤트 적재 (단건/배열) |
+| POST | `/api/visits` | 방문 이벤트 1건 기록 (body: path, visitorId, referrer?, userAgent?, meta?) |
+| GET | `/api/visits/summary` | 방문 수·고유 방문자 수 (query: period=24h\|7d, path=/dashboard) |
 | GET | `/api/exposures/summary` | 총 노출, 세션 수, P25/P50/P75, Anchor, 최빈 구간 |
 | GET | `/api/exposures/histogram` | 구간별 건수 (binSize 기본 10,000, 쿼리로 10,000~50,000 조정) |
 | GET | `/api/exposures/timeseries` | 시간대별 평균/중앙값/건수 |
