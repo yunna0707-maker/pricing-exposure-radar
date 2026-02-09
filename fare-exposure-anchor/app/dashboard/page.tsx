@@ -4,13 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { defaultFilters, getMissingFilterLabels, type DashboardFilters } from "@/components/dashboard/types";
 import { FilterCard } from "@/components/dashboard/FilterCard";
 import { KpiCards } from "@/components/dashboard/KpiCards";
+import { VisitKpiCards } from "@/components/dashboard/VisitKpiCards";
 import { HistogramChart } from "@/components/dashboard/HistogramChart";
 import { PriceCountCard } from "@/components/dashboard/PriceCountCard";
-import { MarginStrategyCard } from "@/components/dashboard/MarginStrategyCard";
+import { OpportunityBandsPanel } from "@/components/dashboard/OpportunityBandsPanel";
 import { TimeseriesChart } from "@/components/dashboard/TimeseriesChart";
 import { InsightsCard } from "@/components/dashboard/InsightsCard";
 import { RecentTable } from "@/components/dashboard/RecentTable";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
+import { trackPageView } from "@/lib/visitTracker";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +47,10 @@ export default function DashboardPage() {
       }
     }
   }, [loading, error, summary]);
+
+  useEffect(() => {
+    trackPageView("/dashboard");
+  }, []);
 
   return (
     <div className="min-h-screen bg-background-soft">
@@ -93,6 +99,7 @@ export default function DashboardPage() {
           </aside>
 
           <main className="space-y-6">
+            <VisitKpiCards period={filters.period} />
             <KpiCards summary={summary} loading={loading} />
             <HistogramChart
               data={histogram}
@@ -107,8 +114,14 @@ export default function DashboardPage() {
               loading={loading}
               filters={filters}
               anchorPrice={summary?.anchorPrice}
+              totalExposures={summary?.totalExposures}
             />
-            <MarginStrategyCard histogram={histogram} summary={summary} loading={loading} />
+            <OpportunityBandsPanel
+              histogram={histogram}
+              summary={summary}
+              loading={loading}
+              onApplyBandFilter={(minPrice, maxPrice) => setFilters((prev) => ({ ...prev, minPrice, maxPrice }))}
+            />
             <TimeseriesChart data={timeseries} loading={loading} />
             <InsightsCard summary={summary} loading={loading} period={filters.period} />
             <RecentTable items={recent} loading={loading} />

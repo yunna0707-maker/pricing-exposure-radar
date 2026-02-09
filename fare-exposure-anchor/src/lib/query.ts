@@ -30,6 +30,8 @@ export async function fetchFilteredExposures(
   if (q.channel) builder = builder.eq("channel", q.channel);
   if (q.departureDate && q.departureDate.trim() !== "") builder = builder.eq("departure_date", q.departureDate);
   if (q.arrivalDate && q.arrivalDate.trim() !== "") builder = builder.eq("arrival_date", q.arrivalDate);
+  if (q.minPrice != null) builder = builder.gte("price_krw", q.minPrice);
+  if (q.maxPrice != null) builder = builder.lte("price_krw", q.maxPrice);
 
   const { data, error } = await builder.order("ts", { ascending: false });
   if (error) throw error;

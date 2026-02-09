@@ -266,11 +266,12 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
 
         <div>
           <label className="text-xs text-muted-foreground">편도/왕복</label>
-          <Select value={filters.tripType} onValueChange={(v) => update("tripType", v)}>
+          <Select value={filters.tripType || " "} onValueChange={(v) => update("tripType", v === " " ? "" : v)}>
             <SelectTrigger className="mt-1">
-              <SelectValue />
+              <SelectValue placeholder="선택하세요" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value=" ">선택하세요</SelectItem>
               {TRIP_TYPES.map((t) => (
                 <SelectItem key={t} value={t}>
                   {t}
@@ -282,11 +283,12 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
 
         <div>
           <label className="text-xs text-muted-foreground">기간</label>
-          <Select value={filters.period} onValueChange={(v) => update("period", v)}>
+          <Select value={filters.period || " "} onValueChange={(v) => update("period", v === " " ? "" : v)}>
             <SelectTrigger className="mt-1">
-              <SelectValue />
+              <SelectValue placeholder="선택하세요" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value=" ">선택하세요</SelectItem>
               {PERIODS.map((p) => (
                 <SelectItem key={p} value={p}>
                   {p === "24h" ? "최근 24시간" : "최근 7일"}
@@ -334,11 +336,12 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
           <p className="mt-0.5 text-[10px] text-muted-foreground">
             노출된 경로별로 필터합니다.
           </p>
-          <Select value={filters.channel} onValueChange={(v) => update("channel", v)}>
+          <Select value={filters.channel || " "} onValueChange={(v) => update("channel", v === " " ? "" : v)}>
             <SelectTrigger className="mt-2">
-              <SelectValue />
+              <SelectValue placeholder="선택하세요" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value=" ">선택하세요</SelectItem>
               {CHANNELS.map((c) => {
                 const Icon = c.icon;
                 return (

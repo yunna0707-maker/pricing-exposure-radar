@@ -56,6 +56,8 @@ export const exposureQuerySchema = z.object({
       const s = typeof v === "string" ? v.trim() : "";
       return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined;
     }),
+  minPrice: z.coerce.number().int().min(0).optional(),
+  maxPrice: z.coerce.number().int().min(0).optional(),
 });
 
 export type ExposureQuery = z.infer<typeof exposureQuerySchema>;
@@ -90,3 +92,20 @@ export const byPriceResponseSchema = z.object({
   events: z.array(byPriceEventSchema),
 });
 export type ByPriceResponse = z.infer<typeof byPriceResponseSchema>;
+
+// POST /api/visits — insert one visit event
+export const postVisitBodySchema = z.object({
+  path: z.string().min(1).max(500),
+  visitorId: z.string().min(1).max(128),
+  referrer: z.string().max(2000).optional(),
+  userAgent: z.string().max(1000).optional(),
+  meta: z.record(z.unknown()).optional().default({}),
+});
+export type PostVisitBody = z.infer<typeof postVisitBodySchema>;
+
+// GET /api/visits/summary
+export const visitSummaryQuerySchema = z.object({
+  period: z.enum(["24h", "7d"]).optional().default("24h"),
+  path: z.string().min(1).optional().default("/dashboard"),
+});
+export type VisitSummaryQuery = z.infer<typeof visitSummaryQuerySchema>;

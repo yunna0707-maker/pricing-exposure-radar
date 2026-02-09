@@ -7,15 +7,18 @@ export interface DashboardFilters {
   channel: string;
   departureDate: string;
   arrivalDate: string;
+  /** 가격대 구간 필터 (이 구간으로 필터 적용 시 설정) */
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export const defaultFilters: DashboardFilters = {
-  airline: "OZ",
-  origin: "ICN",
-  dest: "LAX",
-  tripType: "RT",
-  period: "24h",
-  channel: "all",
+  airline: "",
+  origin: "",
+  dest: "",
+  tripType: "",
+  period: "",
+  channel: "",
   departureDate: "",
   arrivalDate: "",
 };
