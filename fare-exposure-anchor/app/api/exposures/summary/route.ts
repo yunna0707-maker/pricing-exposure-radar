@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exposureQuerySchema } from "@/lib/validators";
-import { fetchFilteredExposures } from "@/lib/query";
+import { exposureQuerySchema, requireExposureFilters } from "@/lib/validators";
+import { fetchFilteredExposures, buildExposureDebugInfo, getSinceDate } from "@/lib/query";
 import {
   computePercentiles,
   computeHistogram,
@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const sp = Object.fromEntries(url.searchParams);
     const q = exposureQuerySchema.parse(sp);
+    const requiredErr = requireExposureFilters(q);
+    if (requiredErr) return NextResponse.json({ error: requiredErr }, { status: 400 });
     const rows = await fetchFilteredExposures(supabaseAdmin, q);
     const prices = rows.map((r) => r.price_krw);
 
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const uniqueSessions = new Set(rows.map((r) => r.session_id)).size;
 
-    return NextResponse.json({
+    const body: Record<string, unknown> = {
       totalExposures: rows.length,
       uniqueSessions,
       p25,
@@ -36,7 +38,12 @@ export async function GET(request: NextRequest) {
       modeBin: modeBin
         ? { binStart: modeBin.binStart, binEnd: modeBin.binEnd, count: modeBin.count }
         : null,
-    });
+    };
+    if (q.debug) {
+      const since = getSinceDate(q.period ?? "24h");
+      body.debug = buildExposureDebugInfo(q, since, rows.length);
+    }
+    return NextResponse.json(body);
   } catch (err) {
     console.error("GET /api/exposures/summary", err);
     const isZod = err && typeof err === "object" && "name" in err && (err as { name: string }).name === "ZodError";

@@ -1,48 +1,49 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getMissingFilterLabels, type DashboardFilters, type SummaryData, type HistogramData, type TimeseriesData, type RecentItem, type PriceCountsData } from "./types";
+import type { DashboardFilters, SummaryData, HistogramData, TimeseriesData, RecentItem, PriceCountsData } from "./types";
 
-function buildQuery(f: DashboardFilters): string {
+/** state 기준으로 쿼리 생성. 빈 값은 param에 포함하지 않음. period는 기본값 24h이므로 보통 존재 */
+function buildQuery(f: DashboardFilters, addDebug = false): string {
   const p = new URLSearchParams();
-  if (f.airline) p.set("airline", f.airline);
-  if (f.origin) p.set("origin", f.origin);
-  if (f.dest) p.set("dest", f.dest);
-  if (f.tripType) p.set("tripType", f.tripType);
-  if (f.period) p.set("period", f.period);
-  if (f.channel && f.channel !== "all") p.set("channel", f.channel);
-  if (f.departureDate?.trim()) p.set("departureDate", f.departureDate);
-  if (f.arrivalDate?.trim()) p.set("arrivalDate", f.arrivalDate);
+  if (f.period?.trim()) p.set("period", f.period.trim());
+  if (f.airline?.trim()) p.set("airline", f.airline.trim());
+  if (f.origin?.trim()) p.set("origin", f.origin.trim());
+  if (f.dest?.trim()) p.set("dest", f.dest.trim());
+  if (f.tripType?.trim()) p.set("tripType", f.tripType.trim());
+  if (f.channel?.trim() && f.channel !== "all") p.set("channel", f.channel.trim());
+  if (f.departureDate?.trim()) p.set("departureDate", f.departureDate.trim());
+  if (f.arrivalDate?.trim()) p.set("arrivalDate", f.arrivalDate.trim());
   if (f.minPrice != null) p.set("minPrice", String(f.minPrice));
   if (f.maxPrice != null) p.set("maxPrice", String(f.maxPrice));
+  if (addDebug) p.set("debug", "1");
   return p.toString();
 }
 
-export function useDashboardData(filters: DashboardFilters, histogramBinSize: number = 10000) {
+export function useDashboardData(
+  filters: DashboardFilters,
+  histogramBinSize: number = 10000,
+  options?: { debug?: boolean }
+) {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [histogram, setHistogram] = useState<HistogramData | null>(null);
   const [timeseries, setTimeseries] = useState<TimeseriesData | null>(null);
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [priceCounts, setPriceCounts] = useState<PriceCountsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastDebug, setLastDebug] = useState<Record<string, unknown> | null>(null);
+  const [lastHistogramDebug, setLastHistogramDebug] = useState<Record<string, unknown> | null>(null);
 
   const fetchAll = useCallback(async () => {
-    if (getMissingFilterLabels(filters).length > 0) {
-      setSummary(null);
-      setHistogram(null);
-      setTimeseries(null);
-      setRecent([]);
-      setPriceCounts(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    const q = buildQuery(filters);
+    const q = buildQuery(filters, options?.debug);
+    // histogram API는 binSize를 query param으로 받음. 구간 크기 변경 시 부모에서 refetch 호출해야 차트가 갱신됨.
     const histQuery = `${q}&binSize=${histogramBinSize}`;
     const base = `/api/exposures`;
     setLoading(true);
     setError(null);
+    setLastDebug(null);
+    setLastHistogramDebug(null);
     try {
       const [summaryRes, histRes, tsRes, recentRes, priceCountsRes] = await Promise.all([
         fetch(`${base}/summary?${q}`, { cache: "no-store" }),
@@ -80,6 +81,8 @@ export function useDashboardData(filters: DashboardFilters, histogramBinSize: nu
       setTimeseries(t);
       setRecent(r.items ?? []);
       setPriceCounts(pc);
+      if (s?.debug) setLastDebug(s.debug);
+      if (h?.debug) setLastHistogramDebug(h.debug as Record<string, unknown>);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load";
       if (msg === "Failed to fetch" || msg === "Failed to load") {
@@ -100,22 +103,32 @@ export function useDashboardData(filters: DashboardFilters, histogramBinSize: nu
     } finally {
       setLoading(false);
     }
-  }, [filters.airline, filters.origin, filters.dest, filters.tripType, filters.period, filters.channel, filters.departureDate, filters.arrivalDate, histogramBinSize]);
+  }, [filters, histogramBinSize, options?.debug]);
 
-  useEffect(() => {
-    const missing = getMissingFilterLabels(filters);
-    if (missing.length > 0) {
-      setSummary(null);
-      setHistogram(null);
-      setTimeseries(null);
-      setRecent([]);
-      setPriceCounts(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-    fetchAll();
-  }, [filters, fetchAll]);
+  const clearData = useCallback(() => {
+    setSummary(null);
+    setHistogram(null);
+    setTimeseries(null);
+    setRecent([]);
+    setPriceCounts(null);
+    setLoading(false);
+    setError(null);
+    setLastDebug(null);
+    setLastHistogramDebug(null);
+  }, []);
 
-  return { summary, histogram, timeseries, recent, priceCounts, loading, error, refetch: fetchAll };
+  return {
+    summary,
+    histogram,
+    timeseries,
+    recent,
+    priceCounts,
+    loading,
+    error,
+    refetch: fetchAll,
+    clearData,
+    lastDebug,
+    lastHistogramDebug,
+    buildQueryString: (withDebug = false) => buildQuery(filters, withDebug),
+  };
 }

@@ -33,13 +33,23 @@ export const postExposuresBodySchema = z.union([
 
 export type PostExposuresBody = z.infer<typeof postExposuresBodySchema>;
 
+// 빈값/"all" → undefined (규칙 A: 값 없으면 조건 걸지 않음)
+const optionalFilterString = z
+  .string()
+  .optional()
+  .transform((v) => {
+    const s = typeof v === "string" ? v.trim() : "";
+    if (!s || s === "all") return undefined;
+    return s;
+  });
+
 // Query params for GET APIs
 export const exposureQuerySchema = z.object({
-  airline: z.string().min(1).optional(),
-  origin: z.string().min(1).optional(),
-  dest: z.string().min(1).optional(),
-  tripType: z.string().min(1).optional(),
-  channel: z.string().optional(),
+  airline: optionalFilterString,
+  origin: optionalFilterString,
+  dest: optionalFilterString,
+  tripType: optionalFilterString,
+  channel: optionalFilterString,
   period: z.enum(["24h", "7d"]).optional().default("24h"),
   binSize: z.coerce.number().int().min(10000).optional().default(10000),
   departureDate: z
@@ -58,9 +68,19 @@ export const exposureQuerySchema = z.object({
     }),
   minPrice: z.coerce.number().int().min(0).optional(),
   maxPrice: z.coerce.number().int().min(0).optional(),
+  debug: z.union([z.string(), z.coerce.number()]).optional().transform((v) => v === "1" || v === 1),
 });
 
 export type ExposureQuery = z.infer<typeof exposureQuerySchema>;
+
+/** 필수 필터(airline, origin, dest, tripType) 누락 시 에러 메시지 반환, 있으면 null */
+export function requireExposureFilters(q: ExposureQuery): string | null {
+  if (!q.airline?.trim()) return "missing required filters: airline";
+  if (!q.origin?.trim()) return "missing required filters: origin";
+  if (!q.dest?.trim()) return "missing required filters: dest";
+  if (!q.tripType?.trim()) return "missing required filters: tripType";
+  return null;
+}
 
 // GET /api/exposures/options — 캐스케이딩 필터 옵션용 (전부 optional)
 export const optionsQuerySchema = z.object({
@@ -84,6 +104,7 @@ export const optionsQuerySchema = z.object({
       const s = typeof v === "string" ? v.trim() : "";
       return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined;
     }),
+  debug: z.union([z.string(), z.coerce.number()]).optional().transform((v) => v === "1" || v === 1),
 });
 export type OptionsQuery = z.infer<typeof optionsQuerySchema>;
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { optionsQuerySchema } from "@/lib/validators";
-import { fetchFilterOptions, type FilterOptionsQuery } from "@/lib/query";
+import { fetchFilterOptions, getOptionsDebugCounts, type FilterOptionsQuery } from "@/lib/query";
+import { getSupabaseDiagnosticMeta } from "@/lib/envDebug";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 30;
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +23,37 @@ export async function GET(request: NextRequest) {
       arrivalDate: parsed.arrivalDate,
     };
     const result = await fetchFilterOptions(supabaseAdmin, q);
+
+    if (parsed.debug) {
+      const [meta, counts] = await Promise.all([
+        Promise.resolve(getSupabaseDiagnosticMeta()),
+        getOptionsDebugCounts(supabaseAdmin, q),
+      ]);
+      return NextResponse.json({
+        ...result,
+        debug: {
+          urlHostMask: meta.urlHostMask,
+          keyMode: meta.keyMode,
+          filtersNormalized: {
+            airline: q.airline ?? null,
+            origin: q.origin ?? null,
+            dest: q.dest ?? null,
+            tripType: q.tripType ?? null,
+            channel: q.channel ?? null,
+            period: q.period ?? "24h",
+          },
+          whereSummary: counts.whereSummary,
+          totalCount: counts.totalCount,
+          periodCount: counts.periodCount,
+          airlineCount: counts.airlineCount,
+          odCount: counts.odCount,
+          finalCount: counts.finalCount,
+          nowIso: counts.nowIso,
+          cutoffIso: counts.cutoffIso,
+        },
+      });
+    }
+
     return NextResponse.json(result);
   } catch (err) {
     console.error("GET /api/exposures/options", err);

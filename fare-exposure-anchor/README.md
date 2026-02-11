@@ -78,6 +78,13 @@ ALTER TABLE exposure_events
 - 실행 후 콘솔에 **항공사별/노선별 Top10**, **trip_type·channel 분포**가 출력됩니다.  
 - 전체 검증: Supabase SQL Editor에서 `docs/seed-verify.sql` 실행 후, `/dashboard`에서 KE/OZ 외 항공사 필터가 보이는지 확인하세요.
 
+**"데이터가 없습니다"가 버그인지 정상인지 판단하는 방법:**  
+① 대시보드에서 **디버그 보기** 체크 후 조회하면, 적용된 필터·쿼리 설명·rowsCount가 표시됩니다.  
+② `rowsCount`가 0이면서 `queryDescription`에 빈 값 조건(예: `dest = `)이 없으면 → DB에 해당 조합이 없는 정상 케이스입니다.  
+③ 빈 값이 조건으로 들어가 있으면 쿼리 버그이므로, 필터를 비우거나 API 정규화(빈값 미적용)를 확인하세요.  
+④ 로컬에서 `npm run dev` 실행 후 `npx tsx scripts/verify-filters.ts` 로 health·BX+GMP/ICN 결과를 한 번에 확인할 수 있습니다.  
+⑤ `/api/health` 에서 전체 건수·항공사/출발지 Top을 보면, 선택한 조합이 DB에 존재할 수 있는지 판단할 수 있습니다.
+
 ## 배포
 
 - **GitHub → Vercel**  
@@ -113,6 +120,8 @@ ALTER TABLE exposure_events
 | GET | `/api/exposures/recent` | 최근 30건 |
 | GET | `/api/exposures/by-price` | 특정 가격 구간 노출 상세 (시간대별·로그, Drill-down용) |
 | GET | `/api/exposures/options` | 캐스케이딩 필터용 옵션 (airlines, origins, dests, tripTypes, channels, availablePairsCount) |
+| GET | `/api/health` | 진단: Supabase 연결, 전체/7일 건수, airline/origin/dest Top20, env 존재 여부 |
+| GET | `...?debug=1` | summary/histogram/recent/timeseries/price-counts 에 적용 시 응답에 debug 필드 (적용 필터·쿼리 설명·rowsCount) |
 
 공통 쿼리: `airline`, `origin`, `dest`, `tripType`, `channel`(선택), `period=24h|7d`
 

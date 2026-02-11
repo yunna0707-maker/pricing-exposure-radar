@@ -11,6 +11,7 @@
     "check:env": "tsx scripts/check-env.ts",
     "check:db": "tsx scripts/test-supabase.ts",
     "seed": "tsx scripts/seed.ts",
+    "verify-filters": "tsx scripts/verify-filters.ts",
     "dev:all": "npm run check:env && npm run check:db && npm run dev"
   },
   "dependencies": {
