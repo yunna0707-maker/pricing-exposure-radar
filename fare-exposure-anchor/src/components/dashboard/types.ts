@@ -12,16 +12,55 @@ export interface DashboardFilters {
   maxPrice?: number;
 }
 
+/** 필터 기본값 — 한 곳에서만 관리. 필수: airline, origin, dest, tripType, period. 옵션: channel, departureDate, arrivalDate */
 export const defaultFilters: DashboardFilters = {
   airline: "",
   origin: "",
   dest: "",
   tripType: "",
-  period: "",
-  channel: "",
+  period: "24h",
+  channel: "all",
   departureDate: "",
   arrivalDate: "",
 };
+
+/** 조회 시 필수 5개만 검증할 키와 한글 라벨 */
+const REQUIRED_QUERY_KEYS: { key: keyof DashboardFilters; label: string }[] = [
+  { key: "airline", label: "항공사" },
+  { key: "origin", label: "출발" },
+  { key: "dest", label: "도착" },
+  { key: "tripType", label: "편도/왕복" },
+  { key: "period", label: "기간" },
+];
+
+/** 필수 5개(airline, origin, dest, tripType, period) 누락 시 누락된 항목 라벨 배열 반환. toast용 */
+export function validateFilters(f: DashboardFilters): string[] {
+  return REQUIRED_QUERY_KEYS.filter(({ key }) => {
+    const v = f[key];
+    return typeof v !== "string" || !v.trim();
+  }).map(({ label }) => label);
+}
+
+/** 필수 5개(airline, origin, dest, tripType, period)가 모두 유효한지 */
+export function isRequiredFiltersReady(f: DashboardFilters): boolean {
+  return validateFilters(f).length === 0;
+}
+
+/** 현재 필터가 기본값과 동일한지 (초기화 버튼 enabled 판단용) */
+export function isFiltersAtDefault(f: DashboardFilters): boolean {
+  return (
+    f.airline === defaultFilters.airline &&
+    f.origin === defaultFilters.origin &&
+    f.dest === defaultFilters.dest &&
+    f.tripType === defaultFilters.tripType &&
+    f.period === defaultFilters.period &&
+    f.channel === defaultFilters.channel &&
+    f.departureDate === defaultFilters.departureDate &&
+    f.arrivalDate === defaultFilters.arrivalDate &&
+    (f.minPrice ?? undefined) === (defaultFilters.minPrice ?? undefined) &&
+    (f.maxPrice ?? undefined) === (defaultFilters.maxPrice ?? undefined)
+  );
+}
 
 /** 날짜 제외, 조회 시 필수로 검증할 필터 키와 한글 라벨 */
 const REQUIRED_FILTER_LABELS: { key: keyof DashboardFilters; label: string }[] = [

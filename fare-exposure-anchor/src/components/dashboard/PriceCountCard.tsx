@@ -11,7 +11,7 @@ interface PriceCountCardProps {
   totalExposures?: number;
 }
 
-/** 동일 금액별 노출 횟수: Mixpanel-style 패널(랭킹+바+미니 차트) + 행 클릭 시 드로어 상세 */
+/** 동일 금액별 노출 횟수: 랭킹+진행바 리스트 + 행 클릭 시 드로어 상세 */
 export function PriceCountCard({
   data,
   loading,

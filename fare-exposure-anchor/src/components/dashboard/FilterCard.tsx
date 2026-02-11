@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Monitor, Smartphone, Globe, Server, ChevronDown, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { DashboardFilters } from "./types";
 import type { FilterOptionsResult } from "./types";
 
@@ -62,15 +63,18 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
     [filters.airline]
   );
 
-  // 옵션 API 호출 (period 기본 24h)
+  // 옵션 API 호출 (period 기본 24h). 개발 시에만 debug=1로 진단 정보 요청 후 콘솔 출력(운영에서는 미요청).
   useEffect(() => {
     const period = filters.period || "24h";
     const q = buildOptionsQuery({ ...filters, period });
+    const isDev = typeof process !== "undefined" && process.env.NODE_ENV === "development";
+    const url = `/api/exposures/options?${q}${isDev ? "&debug=1" : ""}`;
     setOptionsLoading(true);
-    fetch(`/api/exposures/options?${q}`, { cache: "no-store" })
+    fetch(url, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Options failed"))))
-      .then((data: FilterOptionsResult) => {
+      .then((data: FilterOptionsResult & { debug?: Record<string, unknown> }) => {
         setOptions(data);
+        if (isDev && data.debug) console.log("[options debug]", data.debug);
         setOptionsLoading(false);
       })
       .catch(() => {
@@ -94,7 +98,10 @@ export function FilterCard({ filters, onFiltersChange }: FilterCardProps) {
     let next = { ...filters };
     if (filters.origin && !options.origins.includes(filters.origin)) next = { ...next, origin: "" };
     if (filters.dest && !options.dests.includes(filters.dest)) next = { ...next, dest: "" };
-    if (next.origin !== filters.origin || next.dest !== filters.dest) onFiltersChange(next);
+    if (next.origin !== filters.origin || next.dest !== filters.dest) {
+      onFiltersChange(next);
+      toast.info("현재 조건에서 가능한 노선이 없어 출발/도착 선택을 초기화했습니다.");
+    }
   }, [options, filters.origin, filters.dest, onFiltersChange]);
 
   const airlinesList = options?.airlines ?? [];

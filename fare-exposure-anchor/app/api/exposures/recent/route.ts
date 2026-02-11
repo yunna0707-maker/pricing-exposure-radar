@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { exposureQuerySchema } from "@/lib/validators";
-import { fetchFilteredExposures } from "@/lib/query";
+import { exposureQuerySchema, requireExposureFilters } from "@/lib/validators";
+import { fetchFilteredExposures, buildExposureDebugInfo, getSinceDate } from "@/lib/query";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const sp = Object.fromEntries(url.searchParams);
     const q = exposureQuerySchema.parse(sp);
+    const requiredErr = requireExposureFilters(q);
+    if (requiredErr) return NextResponse.json({ error: requiredErr }, { status: 400 });
     const rows = await fetchFilteredExposures(supabaseAdmin, q);
     const recent = rows.slice(0, 30).map((r) => ({
       id: r.id,
@@ -27,7 +29,12 @@ export async function GET(request: NextRequest) {
       departure_date: r.departure_date ?? null,
       arrival_date: r.arrival_date ?? null,
     }));
-    return NextResponse.json({ items: recent });
+    const body: Record<string, unknown> = { items: recent };
+    if (q.debug) {
+      const since = getSinceDate(q.period ?? "24h");
+      body.debug = buildExposureDebugInfo(q, since, rows.length);
+    }
+    return NextResponse.json(body);
   } catch (err) {
     console.error("GET /api/exposures/recent", err);
     const isZod = err && typeof err === "object" && "name" in err && (err as { name: string }).name === "ZodError";

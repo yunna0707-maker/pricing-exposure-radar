@@ -20,6 +20,10 @@ export function computePercentiles(
   };
 }
 
+/**
+ * 가격 구간(bucket) 히스토그램 계산. 구간 기준은 Math.floor(price / binSize) * binSize 로 통일.
+ * (프론트/서버 동일 binSize + 이 공식으로 x축 구간·막대 개수가 일치해야 함)
+ */
 export function computeHistogram(
   prices: number[],
   binSize: number

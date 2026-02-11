@@ -13,7 +13,10 @@ function getSupabaseAdmin(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+    const missing = [(!url && "NEXT_PUBLIC_SUPABASE_URL"), (!key && "SUPABASE_SERVICE_ROLE_KEY")].filter(Boolean).join(", ");
+    throw new Error(
+      `[Supabase] 환경 변수 누락: ${missing}. 로컬: .env.local에 추가. Vercel: Project → Settings → Environment Variables에서 Production/Preview에 설정 후 재배포.`
+    );
   }
   _client = createClient(url, key, { auth: { persistSession: false } });
   return _client;
